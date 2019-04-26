@@ -1,0 +1,23 @@
+table {
+    border: 2px solid black;
+    border-spacing: 0px;
+    table-layout: fixed;
+    max-width: 100vw;
+}
+th, td {
+    border: 1px solid black;
+}
+td.id {
+    max-width: 10ch;
+    min-width: 5vw;
+    text-align: center;
+}
+td.title div {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+td.time {
+    min-width: 10ch;
+}

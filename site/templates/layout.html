@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}{% endblock %}</title>
+        <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/default.css') }}">
+        {% block add_to_head %}{% endblock %}
+    </head>
+    <body>
+        <header>
+            <h1><a href="/">{{ site_name }}</a></h1>
+        </header>
+        {% if announce is defined and announce is not none %}
+        <div class="announce">
+            <h2>Announcement:<br> {{ announce }}</h2>
+        </div>
+        {% endif %}
+        <div>
+        {% block content %}{% endblock %}
+        </div>
+        <footer>
+            <p>&copy; Copyright 2019 by <a href="https://vk.com/andtit2001" target="_blank">andtit2001</a><br>
+            Licensed under <a href="https://www.gnu.org/licenses/agpl.html" target="_blank">GNU AGPL v3</a> or later.</p>
+            <p>Contact: <script>document.write("titov.a")</script>k@phystech.edu</p>
+        </footer>
+    </body>
+</html>
