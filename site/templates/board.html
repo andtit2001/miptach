@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+{% block title %}/{{ board_info[0] }}/ &mdash; {{ board_info[1] }} | {{ site_name }}{% endblock %}
+{% block add_to_head %}
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/form.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/table.css') }}">
+        <style>label { width: 15vw; }</style>
+{% endblock %}
+{% block content %}
+        <script type="text/javascript">
+            var visible = false
+            var template = document.createElement("template")
+            template.innerHTML = `
+        <form id="form" action="/{{ board_info[0] }}/" method="POST">
+            <div>
+                <label for="name">Thread title:</label>
+                <input type="text" id="name" name="thread_title" required minlength="3" maxlength="100">
+            </div>
+            <div>
+                <label for="text">Text for initial post:</label>
+                <textarea id="text" name="initial_text" required minlength="3" maxlength="10000"></textarea>
+            </div>
+            <div class="button">
+                <button type="submit">Create</button>
+            </div>
+        </form>`
+            var form = template.content
+
+            function toggle_form() {
+                if (visible) {
+                    var elem = document.getElementById("form")
+                    elem.parentNode.removeChild(elem)
+                } else {
+                    var elem = document.getElementById("insert_before_that")
+                    elem.parentNode.insertBefore(form.cloneNode(true), elem)
+                }
+                visible = !visible
+            }
+        </script>
+
+        <div>
+            <div>
+            <h2>/{{ board_info[0] }}/ &mdash; {{ board_info[1] }}</h2>
+            <h3><a href="javascript:toggle_form()">Create thread</a></h3>
+            <a id="insert_before_that"></a>
+            </div>
+            <section>
+            <h3>List of threads</h3>
+            <table>
+                <thead><tr><th>ID</th><th>Title</th><th>Creation time</th></tr></thead>
+                {% for thread in threads %}
+                <tr>
+                    <td class="id"><a href="{{ thread[0] }}">{{ thread[0] }}</a></td>
+                    <td class="title" style="max-width: 60vw;"><div><a href="{{ thread[0] }}">{{ thread[1] }}</a></div></td>
+                    <td class="time" style="max-width: 19ch;">{{ thread[2] }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            </section>
+        </div>
+{% endblock %}
