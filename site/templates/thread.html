@@ -6,6 +6,7 @@
         <style>label { width: 5vw; }</style>
 {% endblock %}
 {% block content %}
+        {% if not archived %}
         <script type="text/javascript">
             var visible = false
             var template = document.createElement("template")
@@ -32,6 +33,7 @@
                 visible = !visible
             }
         </script>
+        {% endif %}
         
         <div>
             <h2><a href="/{{ board_info[0] }}/">/{{ board_info[0] }}/ &mdash; {{ board_info[1] }}</a></h2>
@@ -48,9 +50,11 @@
                 {% endfor %}
             </table>
             </section>
+            {% if not archived %}
             <div>
             <h3><a href="javascript:toggle_form()">Create post</a></h3>
             <a id="insert_before_that"></a>
             </div>
+            {% endif %}
         </div>
 {% endblock %}

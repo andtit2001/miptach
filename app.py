@@ -95,6 +95,12 @@ def thread_handler(board_name, thread_id):
         return create_post(board_name, thread_id)
 
 
+@SERVER.route("/<board_name>/arch/<int:thread_id>")
+def archived_thread_handler(board_name, thread_id):
+    """Handler for archived thread page."""
+    return get_thread(board_name, thread_id)
+
+
 # @SERVER.route("/<board_name>/")
 def get_board(board_name):
     """Generate and return page of board."""
@@ -105,16 +111,45 @@ def get_board(board_name):
 SELECT thread_id, title, creation_time
 FROM thread_info
 WHERE NOT archived AND board_name = :board_name
-ORDER BY bumping_time DESC
-LIMIT 20 OFFSET :offset;""",
-                            {"board_name": board_name, "offset": 0}).fetchall()
+ORDER BY bumping_time DESC;""", {"board_name": board_name}).fetchall()
     converted_result = []
     for item in result:
         converted_result.append((item[0], item[1],
-                                 str(datetime.strptime(
-                                     item[2], "%Y-%m-%d %H:%M:%S.%f")
-                                     .replace(microsecond=0)),))
+                                 datetime.strftime(
+                                     datetime.strptime(
+                                         item[2],
+                                         "%Y-%m-%d %H:%M:%S.%f"),
+                                     "%Y-%m-%d %H:%M:%S"),))
     return render_template("board.html",
+                           site_name=SITE_NAME,
+                           announce=ANNOUNCE,
+                           board_info=(
+                               board_name, BOARD_DICT[board_name],),
+                           threads=converted_result)
+
+
+@SERVER.route("/<board_name>/arch/")
+def get_archive(board_name):
+    """Generate and return page of "board archive"."""
+    if board_name not in BOARD_DICT:
+        abort(404)
+    cursor = get_db().cursor()
+    result = cursor.execute("""
+SELECT thread_id, title, creation_time
+FROM thread_info
+WHERE archived AND board_name = :board_name
+ORDER BY bumping_time DESC
+LIMIT 20 OFFSET :offset;""", {"board_name": board_name,
+                              "offset": 0}).fetchall()
+    converted_result = []
+    for item in result:
+        converted_result.append((item[0], item[1],
+                                 datetime.strftime(
+                                     datetime.strptime(
+                                         item[2],
+                                         "%Y-%m-%d %H:%M:%S.%f"),
+                                     "%Y-%m-%d %H:%M:%S"),))
+    return render_template("archive.html",
                            site_name=SITE_NAME,
                            announce=ANNOUNCE,
                            board_info=(
@@ -128,15 +163,14 @@ def get_thread(board_name, thread_id):
     if board_name not in BOARD_DICT:
         abort(404)
     cursor = get_db().cursor()
-    title = cursor.execute("""
-SELECT title
+    thread_info = cursor.execute("""
+SELECT title, archived
 FROM thread_info
 WHERE board_name = :board_name
 AND thread_id = :thread_id;""", {"board_name": board_name,
                                  "thread_id": thread_id}).fetchone()
-    if title is None:
+    if thread_info is None:
         abort(404)
-    title = title[0]
     result = cursor.execute("""
 SELECT post_basic.post_id, content, creation_time
 FROM post_basic INNER JOIN thread_posts
@@ -151,17 +185,19 @@ ORDER BY creation_time ASC;""", {"board_name": board_name,
         converted_result.append(
             (item[0], Markup(markdown(item[1], output_format="html5")),
              datetime.strftime(
-                 datetime.strptime(item[2],
-                                   "%Y-%m-%d %H:%M:%S.%f"),
+                 datetime.strptime(
+                     item[2],
+                     "%Y-%m-%d %H:%M:%S.%f"),
                  "%Y-%m-%d %H:%M:%S"),))
     return render_template("thread.html",
                            site_name=SITE_NAME,
                            announce=ANNOUNCE,
                            board_info=(
                                board_name, BOARD_DICT[board_name],),
-                           thread_title=title,
+                           thread_title=thread_info[0],
                            thread_id=thread_id,
-                           posts=converted_result)
+                           posts=converted_result,
+                           archived=thread_info[1])
 
 
 # @SERVER.route("/<board_name>/create_thread", methods=["POST"])
@@ -177,7 +213,9 @@ def create_thread(board_name):
                           " must lie in range from 3 to 10000."))
     if request.form["initial_text"] is None:
         abort(403, Markup("Value <code>initial_text</code> is required."))
-    string_length = len(request.form["initial_text"])
+    initial_text = request.form["initial_text"].replace(
+        "\r\n", "\n")
+    string_length = len(initial_text)
     if string_length < 3 or string_length > 10000:
         abort(403, Markup("Length of value <code>initial_text</code>" +
                           " must lie in range from 3 to 10000."))
@@ -196,6 +234,19 @@ WHERE board_name = :board_name;""", {"board_name": board_name}).fetchone()
         else:
             post_id = post_id[0]
 
+        threads = cursor.execute("""
+SELECT thread_id
+FROM thread_info
+WHERE NOT archived AND board_name = :board_name
+ORDER BY bumping_time ASC;""", {"board_name": board_name}).fetchall()
+        if len(threads) == CONFIG.getint("BumpLimits", board_name):
+            thread_id = threads[0][0]
+            cursor.execute("""
+UPDATE thread_info
+SET archived = 1
+WHERE board_name = :board_name
+AND thread_id = :thread_id;""", {"board_name": board_name,
+                                 "thread_id": thread_id})
         cursor.execute("""
 INSERT INTO thread_info
 VALUES (:board_name, :thread_id,
@@ -218,7 +269,7 @@ VALUES (:board_name, :post_id,
                        {"board_name": board_name,
                         "post_id": post_id,
                         "creation_time": time,
-                        "content": request.form["initial_text"]})
+                        "content": initial_text})
 
         if post_id == 0:
             cursor.execute("""
@@ -241,7 +292,8 @@ def create_post(board_name, thread_id):
         abort(404)
     if request.form["content"] is None:
         abort(403, Markup("Value <code>content</code> is required."))
-    string_length = len(request.form["content"])
+    post_text = request.form["content"].replace("\r\n", "\n")
+    string_length = len(post_text)
     if string_length < 3 or string_length > 10000:
         abort(403, Markup("Length of value <code>content</code>" +
                           " must lie in range from 3 to 10000."))
@@ -260,13 +312,16 @@ WHERE board_name = :board_name;""", {"board_name": board_name}).fetchone()
         else:
             post_id = post_id[0]
 
-        test = cursor.execute("""
-SELECT thread_id FROM thread_info
+        thread_test = cursor.execute("""
+SELECT thread_id, archived
+FROM thread_info
 WHERE board_name = :board_name
 AND thread_id = :thread_id;""", {"board_name": board_name,
                                  "thread_id": thread_id}).fetchone()
-        if test is None:
+        if thread_test is None:
             abort(404)
+        if thread_test[1]:
+            abort(403, "Thread has been recently archived.")
 
         cursor.execute("""
 UPDATE thread_info
@@ -288,7 +343,7 @@ VALUES (:board_name, :post_id,
                        {"board_name": board_name,
                         "post_id": post_id,
                         "creation_time": time,
-                        "content": request.form["content"]})
+                        "content": post_text})
 
         if post_id == 0:
             cursor.execute("""
