@@ -36,7 +36,11 @@
         {% endif %}
         
         <div>
+            {% if archived %}
+            <h2><a href="/{{ board_info[0] }}/arch/">/{{ board_info[0] }}/ &mdash; {{ board_info[1] }} (archive)</a></h2>
+            {% else %}
             <h2><a href="/{{ board_info[0] }}/">/{{ board_info[0] }}/ &mdash; {{ board_info[1] }}</a></h2>
+            {% endif %}
             <section>
             <h3>{{ thread_title }}</h3>
             <table>

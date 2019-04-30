@@ -98,7 +98,7 @@ def thread_handler(board_name, thread_id):
 @SERVER.route("/<board_name>/arch/<int:thread_id>")
 def archived_thread_handler(board_name, thread_id):
     """Handler for archived thread page."""
-    return get_thread(board_name, thread_id)
+    return get_thread(board_name, thread_id, True)
 
 
 # @SERVER.route("/<board_name>/")
@@ -158,7 +158,7 @@ LIMIT 20 OFFSET :offset;""", {"board_name": board_name,
 
 
 # @SERVER.route("/<board_name>/<int:thread_id>")
-def get_thread(board_name, thread_id):
+def get_thread(board_name, thread_id, from_archive=False):
     """Generate and return page of thread."""
     if board_name not in BOARD_DICT:
         abort(404)
@@ -171,6 +171,9 @@ AND thread_id = :thread_id;""", {"board_name": board_name,
                                  "thread_id": thread_id}).fetchone()
     if thread_info is None:
         abort(404)
+    if not from_archive and thread_info[1]:
+        return redirect("/{}/arch/{}".format(board_name, thread_id), 301)
+
     result = cursor.execute("""
 SELECT post_basic.post_id, content, creation_time
 FROM post_basic INNER JOIN thread_posts
@@ -247,6 +250,7 @@ SET archived = 1
 WHERE board_name = :board_name
 AND thread_id = :thread_id;""", {"board_name": board_name,
                                  "thread_id": thread_id})
+
         cursor.execute("""
 INSERT INTO thread_info
 VALUES (:board_name, :thread_id,
@@ -282,7 +286,7 @@ SET post_counter = :post_counter
 WHERE board_name = :board_name;""", {"board_name": board_name,
                                      "post_counter": post_id + 1})
         conn.commit()
-    return redirect("/{}/".format(board_name), 303)
+        return redirect("/{}/{}".format(board_name, post_id), 303)
 
 
 # @SERVER.route("/<board_name>/<int:thread_id>/create_post", methods=["POST"])
@@ -302,6 +306,17 @@ def create_post(board_name, thread_id):
         conn = get_db()
         cursor = conn.cursor()
 
+        thread_info = cursor.execute("""
+SELECT thread_id, archived
+FROM thread_info
+WHERE board_name = :board_name
+AND thread_id = :thread_id;""", {"board_name": board_name,
+                                 "thread_id": thread_id}).fetchone()
+        if thread_info is None:
+            abort(404)
+        if thread_info[1]:
+            abort(403, "Thread has been archived.")
+
         time = datetime.utcnow()
         post_id = cursor.execute("""
 SELECT post_counter
@@ -311,17 +326,6 @@ WHERE board_name = :board_name;""", {"board_name": board_name}).fetchone()
             post_id = 0
         else:
             post_id = post_id[0]
-
-        thread_test = cursor.execute("""
-SELECT thread_id, archived
-FROM thread_info
-WHERE board_name = :board_name
-AND thread_id = :thread_id;""", {"board_name": board_name,
-                                 "thread_id": thread_id}).fetchone()
-        if thread_test is None:
-            abort(404)
-        if thread_test[1]:
-            abort(403, "Thread has been recently archived.")
 
         cursor.execute("""
 UPDATE thread_info
