@@ -47,7 +47,7 @@
                 <thead><tr><th>ID</th><th>Post</th><th>Creation time</th></tr></thead>
                 {% for post in posts %}
                 <tr>
-                    <td class="id"><a name="{{ post[0] }}" href="#{{ post[0] }}">{{ post[0] }}</a></td>
+                    <td class="id"><a id="{{ post[0] }}" href="#{{ post[0] }}">{{ post[0] }}</a></td>
                     <td class="content" style="word-wrap: break-word;">{{ post[1] }}</td>
                     <td class="time">{{ post[2] }}</td>
                 </tr>
