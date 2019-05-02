@@ -1,5 +1,8 @@
+beautifulsoup4
 bleach
 bleach-whitelist
 markdown
 Flask
 # flask-babel
+html5lib
+python-markdown-math
