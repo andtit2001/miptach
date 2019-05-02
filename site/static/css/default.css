@@ -1,7 +1,7 @@
 body {
     font-family: monospace;
 }
-header h1, .announce h2 {
+header h1, .announce {
     border-bottom: 1px solid #808080;
     padding-bottom: 0.25em;
 }

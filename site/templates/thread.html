@@ -6,8 +6,8 @@
         <style>label { width: 5vw; }</style>
 {% endblock %}
 {% block content %}
-        {% if not archived %}
-        <script type="text/javascript">
+            {% if not archived %}
+            <script type="text/javascript">
 var visible = false
 var template = document.createElement("template")
 template.innerHTML = `
@@ -34,33 +34,31 @@ function toggle_form() {
     }
     visible = !visible
 }
-        </script>
-        {% endif %}
+            </script>
+            {% endif %}
         
-        <div>
             {% if archived %}
             <h2><a href="/{{ board_info[0] }}/arch/">/{{ board_info[0] }}/ &mdash; {{ board_info[1] }} (archive)</a></h2>
             {% else %}
             <h2><a href="/{{ board_info[0] }}/">/{{ board_info[0] }}/ &mdash; {{ board_info[1] }}</a></h2>
             {% endif %}
             <section>
-            <h3>{{ thread_title }}</h3>
-            <table>
-                <thead><tr><th>ID</th><th>Post</th><th>Creation time</th></tr></thead>
-                {% for post in posts %}
-                <tr>
-                    <td class="id"><a id="{{ post[0] }}" href="#{{ post[0] }}" title="Link to this post">{{ post[0] }}</a></td>
-                    <td class="content" style="word-wrap: break-word;">{{ post[1] }}</td>
-                    <td class="time">{{ post[2] }}</td>
-                </tr>
-                {% endfor %}
-            </table>
+                <h3>{{ thread_title }}</h3>
+                <table>
+                    <thead><tr><th>ID</th><th>Post</th><th>Creation time</th></tr></thead>
+                    {% for post in posts %}
+                    <tr>
+                        <td class="id"><a id="{{ post[0] }}" href="#{{ post[0] }}" title="Link to this post">{{ post[0] }}</a></td>
+                        <td class="content" style="word-wrap: break-word;">{{ post[1] }}</td>
+                        <td class="time">{{ post[2] }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
             </section>
             {% if not archived %}
             <div>
-            <h3><a id="toggle_form_link" href="javascript:toggle_form()" title="Open form for creating post">Create post</a></h3>
-            <a id="insert_before_that"></a>
+                <h3><a id="toggle_form_link" href="javascript:toggle_form()" title="Open form for creating post">Create post</a></h3>
+                <a id="insert_before_that"></a>
             </div>
             {% endif %}
-        </div>
 {% endblock %}

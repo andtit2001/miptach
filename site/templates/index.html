@@ -16,16 +16,14 @@
         </style>
 {% endblock %}
 {% block content %}
-        <p>Welcome to {{ site_name }}, an anonymous imageboard which was created by MIPT student(s)!</p>
-        <section>
-        <table>
-            <thead><tr><th colspan="2">List of boards</th></tr></thead>
-            {% for item in board_list %}
-            <tr>
-                <td><a href="/{{ item[0] }}/">{{ item[1] }}</a></td>
-            </tr>
-            {% endfor %}
-        </table>
-        </section>
-        <p><a href="about">About</a></p>
+            <p>Welcome to {{ site_name }}, an anonymous imageboard which was created by MIPT student(s)!</p>
+            <section>
+                <table>
+                    <thead><tr><th>List of boards</th></tr></thead>
+                    {% for item in board_list %}
+                    <tr><td><a href="/{{ item[0] }}/">{{ item[1] }}</a></td></tr>
+                    {% endfor %}
+                </table>
+            </section>
+            <p><a href="/about">About</a></p>
 {% endblock %}

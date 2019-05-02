@@ -13,9 +13,7 @@
             <h1><a href="/">{{ site_name }}</a></h1>
         </header>
         {% if announce is defined and announce is not none %}
-        <div class="announce">
-            <h2>Announcement:<br> {{ announce }}</h2>
-        </div>
+        <h2 class="announce">Announcement:<br> {{ announce }}</h2>
         {% endif %}
         <div>
         {% block content %}{% endblock %}
