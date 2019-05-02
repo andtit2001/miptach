@@ -6,7 +6,7 @@ label {
     /* you need to specify width */
 }
 input, textarea {
-    font: 1em monospace;
+    font-size: 1em;
     box-sizing: border-box;
     width: 35vw;
 }

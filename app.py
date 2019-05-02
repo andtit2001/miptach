@@ -73,6 +73,14 @@ def home():
                            board_list=BOARD_DICT.items())
 
 
+@SERVER.route("/rules")
+def rules():
+    """Generate and return page with rules."""
+    return render_template("rules.html",
+                           site_name=SITE_NAME,
+                           announce=ANNOUNCE)
+
+
 @SERVER.route("/about")
 def about():
     """Generate and return "About" page."""

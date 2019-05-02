@@ -1,5 +1,9 @@
 body {
-    font-family: monospace;
+    font-family: 'Noto Sans', sans-serif;
+    font-family: 'Roboto', sans-serif;
+}
+code, input, textarea {
+    font-family: 'Roboto Mono', monospace;
 }
 header h1, .announce {
     border-bottom: 1px solid #808080;
