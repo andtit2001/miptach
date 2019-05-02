@@ -7,9 +7,9 @@
 {% endblock %}
 {% block content %}
         <script type="text/javascript">
-            var visible = false
-            var template = document.createElement("template")
-            template.innerHTML = `
+var visible = false
+var template = document.createElement("template")
+template.innerHTML = `
         <form id="form" action="/{{ board_info[0] }}/" method="POST">
             <div>
                 <label for="name">Thread title:</label>
@@ -23,18 +23,18 @@
                 <button type="submit">Create</button>
             </div>
         </form>`
-            var form = template.content
+var form = template.content
 
-            function toggle_form() {
-                if (visible) {
-                    var elem = document.getElementById("form")
-                    elem.parentNode.removeChild(elem)
-                } else {
-                    var elem = document.getElementById("insert_before_that")
-                    elem.parentNode.insertBefore(form.cloneNode(true), elem)
-                }
-                visible = !visible
-            }
+function toggle_form() {
+    if (visible) {
+        var elem = document.getElementById("form")
+        form = elem.parentNode.removeChild(elem)
+    } else {
+        var elem = document.getElementById("insert_before_that")
+        elem.parentNode.insertBefore(form, elem)
+    }
+    visible = !visible
+}
         </script>
 
         <div>
