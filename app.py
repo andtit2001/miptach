@@ -184,14 +184,24 @@ AND thread_id = :thread_id
 ORDER BY creation_time ASC;""", {"board_name": board_name,
                                  "thread_id": thread_id}).fetchall()
     converted_result = []
-    for item in result:
-        converted_result.append(
-            (item[0], Markup(markdown(item[1], output_format="html5")),
-             datetime.strftime(
-                 datetime.strptime(
-                     item[2],
-                     "%Y-%m-%d %H:%M:%S.%f"),
-                 "%Y-%m-%d %H:%M:%S"),))
+    if board_name == "sandbox":
+        for item in result:
+            converted_result.append(
+                (item[0], Markup(item[1]),
+                 datetime.strftime(
+                     datetime.strptime(
+                         item[2],
+                         "%Y-%m-%d %H:%M:%S.%f"),
+                     "%Y-%m-%d %H:%M:%S"),))
+    else:
+        for item in result:
+            converted_result.append(
+                (item[0], Markup(markdown(item[1], output_format="html5")),
+                 datetime.strftime(
+                     datetime.strptime(
+                         item[2],
+                         "%Y-%m-%d %H:%M:%S.%f"),
+                     "%Y-%m-%d %H:%M:%S"),))
     return render_template("thread.html",
                            site_name=SITE_NAME,
                            announce=ANNOUNCE,
