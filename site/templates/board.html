@@ -29,9 +29,11 @@ function toggle_form() {
     if (visible) {
         var elem = document.getElementById("form")
         form = elem.parentNode.removeChild(elem)
+        document.getElementById("toggle_form_link").setAttribute("title", "Open form for creating thread")
     } else {
         var elem = document.getElementById("insert_before_that")
         elem.parentNode.insertBefore(form, elem)
+        document.getElementById("toggle_form_link").setAttribute("title", "Close form")
     }
     visible = !visible
 }
@@ -40,7 +42,7 @@ function toggle_form() {
         <div>
             <h2>/{{ board_info[0] }}/ &mdash; {{ board_info[1] }}</h2>
             <div>
-            <h3><a href="javascript:toggle_form()">Create thread</a></h3>
+            <h3><a id="toggle_form_link" href="javascript:toggle_form()" title="Open form for creating thread">Create thread</a></h3>
             <a id="insert_before_that"></a>
             </div>
             <section>

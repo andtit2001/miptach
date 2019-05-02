@@ -26,9 +26,11 @@ function toggle_form() {
     if (visible) {
         var elem = document.getElementById("form")
         form = elem.parentNode.removeChild(elem)
+        document.getElementById("toggle_form_link").setAttribute("title", "Open form for creating post")
     } else {
         var elem = document.getElementById("insert_before_that")
         elem.parentNode.insertBefore(form, elem)
+        document.getElementById("toggle_form_link").setAttribute("title", "Close form")
     }
     visible = !visible
 }
@@ -47,7 +49,7 @@ function toggle_form() {
                 <thead><tr><th>ID</th><th>Post</th><th>Creation time</th></tr></thead>
                 {% for post in posts %}
                 <tr>
-                    <td class="id"><a id="{{ post[0] }}" href="#{{ post[0] }}">{{ post[0] }}</a></td>
+                    <td class="id"><a id="{{ post[0] }}" href="#{{ post[0] }}" title="Link to this post">{{ post[0] }}</a></td>
                     <td class="content" style="word-wrap: break-word;">{{ post[1] }}</td>
                     <td class="time">{{ post[2] }}</td>
                 </tr>
@@ -56,7 +58,7 @@ function toggle_form() {
             </section>
             {% if not archived %}
             <div>
-            <h3><a href="javascript:toggle_form()">Create post</a></h3>
+            <h3><a id="toggle_form_link" href="javascript:toggle_form()" title="Open form for creating post">Create post</a></h3>
             <a id="insert_before_that"></a>
             </div>
             {% endif %}
