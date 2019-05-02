@@ -7,7 +7,8 @@ from logging.handlers import TimedRotatingFileHandler
 import sqlite3
 import threading
 
-# import bleach
+import bleach
+from bleach_whitelist import markdown_attrs, markdown_tags, standard_styles
 from flask import Flask, abort, g, redirect, render_template, request
 # from flask.ext.babel import Babel
 from markdown import markdown
@@ -42,6 +43,9 @@ SERVER.jinja_env.lstrip_blocks = True
 # BABEL = Babel(server)
 
 DB_LOCK = threading.Lock()
+
+ALLOWED_TAGS = markdown_tags[:]
+ALLOWED_TAGS.remove("img")
 
 
 def get_db():
@@ -196,7 +200,9 @@ ORDER BY creation_time ASC;""", {"board_name": board_name,
     else:
         for item in result:
             converted_result.append(
-                (item[0], Markup(markdown(item[1], output_format="html5")),
+                (item[0], Markup(bleach.clean(
+                    markdown(item[1], output_format="html5"),
+                    ALLOWED_TAGS, markdown_attrs, standard_styles)),
                  datetime.strftime(
                      datetime.strptime(
                          item[2],
