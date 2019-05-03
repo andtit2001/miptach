@@ -3,7 +3,7 @@
 {% block add_to_head %}
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/form.css') }}">
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/table.css') }}">
-        <style>label { width: 5vw; }</style>
+        <style>label:not(.expression) { width: 10vw; }</style>
         <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML' async></script>
 {% endblock %}
 {% block content %}
@@ -16,6 +16,15 @@ template.innerHTML = `
             <div>
                 <label for="text">Text:</label>
                 <textarea id="text" name="content" required minlength="3" maxlength="10000"></textarea>
+            </div>
+            <div>
+                <label for="expr">Expression:</label>
+                <label class="expression" id="expr" name="expr">{{ captcha[1] }}</label>
+                <input id="uuid" name="uuid" type="hidden" value="{{ captcha[0] }}">
+            </div>
+            <div>
+                <label for="expr_value">Value of the expression:</label>
+                <input id="expr_value" name="expr_value" type="number" required>
             </div>
             <div class="button">
                 <button type="submit">Send</button>

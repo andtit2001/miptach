@@ -1,16 +1,20 @@
 # -*- coding: utf-8 -*-
 """Backend of MIPTach (Flask + SQLite)"""
+from collections import deque
 from configparser import ConfigParser, ExtendedInterpolation
 from datetime import datetime
+from enum import Enum
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import sqlite3
 import threading
+from uuid import uuid4
 
 from flask import Flask, abort, g, redirect, render_template, request
 # from flask.ext.babel import Babel
 from markupsafe import Markup
 
+from captcha import generate_captcha
 from text_filter import markdown_to_html
 
 CONFIG = ConfigParser()
@@ -42,6 +46,12 @@ SERVER.jinja_env.lstrip_blocks = True
 # BABEL = Babel(server)
 
 DB_LOCK = threading.Lock()
+
+CAPTCHA_LOCK = threading.Lock()
+CAPTCHA_QUEUE = deque()
+CAPTCHA_VALUES = dict()
+MAX_CAPTCHA_QUEUE_SIZE = CONFIG.getint("Common", "MaxCaptchaQueueSize")
+CAPTCHA_RESULT = Enum("CAPTCHA_RESULT", "NOT_FOUND WRONG CORRECT")
 
 
 def get_db():
@@ -109,11 +119,40 @@ def archived_thread_handler(board_name, thread_id):
     return get_thread(board_name, thread_id, True)
 
 
+def get_captcha():
+    """Generate new CAPTCHA."""
+    with CAPTCHA_LOCK:
+        captcha = generate_captcha()
+        captcha_uuid = uuid4().hex
+        while captcha_uuid in CAPTCHA_VALUES:
+            captcha_uuid = uuid4().hex
+
+        if len(CAPTCHA_QUEUE) == MAX_CAPTCHA_QUEUE_SIZE:
+            deleted_uuid = CAPTCHA_QUEUE.popleft()
+            del CAPTCHA_VALUES[deleted_uuid]
+        CAPTCHA_QUEUE.append((captcha_uuid, captcha[0],))
+        CAPTCHA_VALUES[captcha_uuid] = captcha[1]
+        return (captcha_uuid, captcha[0],)
+
+
+def verify_captcha(captcha_uuid, value):
+    """Check if answer to CAPTCHA is correct."""
+    with CAPTCHA_LOCK:
+        if captcha_uuid not in CAPTCHA_VALUES:
+            return CAPTCHA_RESULT.NOT_FOUND
+        answer = CAPTCHA_VALUES[captcha_uuid]
+        del CAPTCHA_VALUES[captcha_uuid]
+        if answer != value:
+            return CAPTCHA_RESULT.WRONG
+        return CAPTCHA_RESULT.CORRECT
+
+
 # @SERVER.route("/<board_name>/")
 def get_board(board_name):
     """Generate and return page of board."""
     if board_name not in BOARD_DICT:
         abort(404)
+    captcha = get_captcha()
     cursor = get_db().cursor()
     result = cursor.execute("""
 SELECT thread_id, title, creation_time
@@ -133,7 +172,8 @@ ORDER BY bumping_time DESC;""", {"board_name": board_name}).fetchall()
                            announce=ANNOUNCE,
                            board_info=(
                                board_name, BOARD_DICT[board_name],),
-                           threads=converted_result)
+                           threads=converted_result,
+                           captcha=captcha)
 
 
 @SERVER.route("/<board_name>/arch/")
@@ -170,6 +210,7 @@ def get_thread(board_name, thread_id, from_archive=False):
     """Generate and return page of thread."""
     if board_name not in BOARD_DICT:
         abort(404)
+    captcha = get_captcha()
     cursor = get_db().cursor()
     thread_info = cursor.execute("""
 SELECT title, archived
@@ -218,7 +259,8 @@ ORDER BY creation_time ASC;""", {"board_name": board_name,
                            thread_title=thread_info[0],
                            thread_id=thread_id,
                            posts=converted_result,
-                           archived=thread_info[1])
+                           archived=thread_info[1],
+                           captcha=captcha)
 
 
 # @SERVER.route("/<board_name>/create_thread", methods=["POST"])
@@ -240,6 +282,13 @@ def create_thread(board_name):
     if string_length < 3 or string_length > 10000:
         abort(403, Markup("Length of value <code>initial_text</code>" +
                           " must lie in range from 3 to 10000."))
+
+    result = verify_captcha(request.form["uuid"],
+                            int(request.form["expr_value"]))
+    if result == CAPTCHA_RESULT.NOT_FOUND:
+        abort(403, "Invalid CAPTCHA ID. Please go back and try again.")
+    if result == CAPTCHA_RESULT.WRONG:
+        abort(403, "Wrong answer to CAPTCHA. Please go back and try again.")
 
     with DB_LOCK:
         conn = get_db()
@@ -319,6 +368,13 @@ def create_post(board_name, thread_id):
     if string_length < 3 or string_length > 10000:
         abort(403, Markup("Length of value <code>content</code>" +
                           " must lie in range from 3 to 10000."))
+
+    result = verify_captcha(request.form["uuid"],
+                            int(request.form["expr_value"]))
+    if result == CAPTCHA_RESULT.NOT_FOUND:
+        abort(403, "Invalid CAPTCHA ID. Please go back and try again.")
+    if result == CAPTCHA_RESULT.WRONG:
+        abort(403, "Wrong answer to CAPTCHA. Please go back and try again.")
 
     with DB_LOCK:
         conn = get_db()
