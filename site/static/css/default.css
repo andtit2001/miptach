@@ -1,6 +1,5 @@
 body {
-    font-family: 'Noto Sans', sans-serif;
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Noto Sans', 'Roboto', sans-serif;
 }
 code, input, textarea {
     font-family: 'Roboto Mono', monospace;
