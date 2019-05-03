@@ -1,6 +1,7 @@
 beautifulsoup4
 bleach
 bleach-whitelist
+inflect
 markdown
 Flask
 # flask-babel
