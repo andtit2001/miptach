@@ -11,7 +11,7 @@ import sqlite3
 import threading
 from uuid import uuid4
 
-from flask import Flask, abort, g, redirect, render_template, request
+from flask import Flask, abort, g, redirect, render_template, request, url_for
 # from flask.ext.babel import Babel
 from markupsafe import Markup
 
@@ -227,7 +227,9 @@ AND thread_id = :thread_id;""", {"board_name": board_name,
     if thread_info is None:
         abort(404)
     if not from_archive and thread_info[1]:
-        return redirect("/{}/arch/{}".format(board_name, thread_id), 301)
+        return redirect(url_for("archived_thread_handler",
+                                board_name=board_name,
+                                thread_id=thread_id), 301)
 
     result = cursor.execute("""
 SELECT post_basic.post_id, content, creation_time
@@ -359,7 +361,9 @@ SET post_counter = :post_counter
 WHERE board_name = :board_name;""", {"board_name": board_name,
                                      "post_counter": post_id + 1})
         conn.commit()
-        return redirect("/{}/{}".format(board_name, post_id), 303)
+        return redirect(url_for("thread_handler",
+                                board_name=board_name,
+                                thread_id=post_id), 303)
 
 
 # @SERVER.route("/<board_name>/<int:thread_id>/create_post", methods=["POST"])
@@ -440,7 +444,9 @@ SET post_counter = :post_counter
 WHERE board_name = :board_name;""", {"board_name": board_name,
                                      "post_counter": post_id + 1})
         conn.commit()
-    return redirect("/{}/{}".format(board_name, thread_id), 303)
+    return redirect(url_for("thread_handler",
+                            board_name=board_name,
+                            thread_id=thread_id), 303)
 
 
 HANDLER = TimedRotatingFileHandler("logs/log.log", encoding="utf-8", utc=True)
