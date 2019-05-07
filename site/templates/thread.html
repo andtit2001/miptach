@@ -17,6 +17,7 @@ template.innerHTML = `
                 <label for="text">Text:</label>
                 <textarea id="text" name="content" required minlength="3" maxlength="10000"></textarea>
             </div>
+{% if captcha is defined and captcha is not none %}
             <div>
                 <label for="expr">Expression:</label>
                 <label class="expression" id="expr" name="expr">{{ captcha[1] }}</label>
@@ -26,6 +27,7 @@ template.innerHTML = `
                 <label for="expr_value">Value of the expression:</label>
                 <input id="expr_value" name="expr_value" type="number" required>
             </div>
+{% endif %}
             <div class="button">
                 <button type="submit">Send</button>
             </div>

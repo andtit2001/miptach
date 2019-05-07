@@ -217,7 +217,8 @@ def get_thread(board_name, thread_id, from_archive=False):
     """Generate and return page of thread."""
     if board_name not in BOARD_DICT:
         abort(404)
-    captcha = get_captcha()
+    if board_name != "sandbox":
+        captcha = get_captcha()
     cursor = get_db().cursor()
     thread_info = cursor.execute("""
 SELECT title, archived
@@ -269,7 +270,7 @@ ORDER BY creation_time ASC;""", {"board_name": board_name,
                            thread_id=thread_id,
                            posts=converted_result,
                            archived=thread_info[1],
-                           captcha=captcha)
+                           captcha=captcha if "captcha" in locals() else None)
 
 
 # @SERVER.route("/<board_name>/create_thread", methods=["POST"])
@@ -380,12 +381,15 @@ def create_post(board_name, thread_id):
         abort(403, Markup("Length of value <code>content</code>" +
                           " must lie in range from 3 to 10000."))
 
-    result = verify_captcha(request.form["uuid"],
-                            int(request.form["expr_value"]))
-    if result == CAPTCHA_RESULT.NOT_FOUND:
-        abort(403, "Invalid CAPTCHA ID. Please go back and try again.")
-    if result == CAPTCHA_RESULT.WRONG:
-        abort(403, "Wrong answer to CAPTCHA. Please go back and try again.")
+    if board_name != "sandbox":
+        result = verify_captcha(request.form["uuid"],
+                                int(request.form["expr_value"]))
+        if result == CAPTCHA_RESULT.NOT_FOUND:
+            abort(403,
+                  "Invalid CAPTCHA ID. Please go back and try again.")
+        if result == CAPTCHA_RESULT.WRONG:
+            abort(403,
+                  "Wrong answer to CAPTCHA. Please go back and try again.")
 
     with DB_LOCK:
         conn = get_db()
