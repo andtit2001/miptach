@@ -11,7 +11,6 @@ import sqlite3
 import threading
 from uuid import uuid4
 
-from bs4 import BeautifulSoup, Comment
 from flask import Flask, abort, g, redirect, render_template, request, url_for
 # from flask.ext.babel import Babel
 from markupsafe import Markup
@@ -59,7 +58,6 @@ CAPTCHA_QUEUE = deque()
 CAPTCHA_VALUES = dict()
 MAX_CAPTCHA_QUEUE_SIZE = CONFIG.getint("Common", "MaxCaptchaQueueSize")
 CAPTCHA_RESULT = Enum("CAPTCHA_RESULT", "NOT_FOUND WRONG CORRECT")
-# MATHJAX_FONT_SIZE_MULTIPLIER = 1.24
 
 
 def get_db():
@@ -141,18 +139,7 @@ def get_captcha():
         CAPTCHA_QUEUE.append((captcha_uuid, captcha[0],))
         CAPTCHA_VALUES[captcha_uuid] = captcha[1]
 
-        soup = BeautifulSoup(captcha[0], "html5lib")
-        for comment in soup.find_all(
-                text=lambda elem: isinstance(elem, Comment)):
-            comment.extract()
-        svg_elem = soup.find("svg")
-        svg_elem["style"] = "vertical-align: middle;"
-        # number = float(svg_elem["width"][:-2])
-        # svg_elem["width"] = str(number * MATHJAX_FONT_SIZE_MULTIPLIER) + "pt"
-        # number = float(svg_elem["height"][:-2])
-        # svg_elem["height"] = str(number * MATHJAX_FONT_SIZE_MULTIPLIER) + "pt"
-
-        return (captcha_uuid, Markup(str(svg_elem)),)
+        return (captcha_uuid, Markup(captcha[0]),)
 
 
 def verify_captcha(captcha_uuid, value):

@@ -2,7 +2,9 @@
 from math import sqrt
 import io
 import random
+from uuid import uuid4
 
+from bs4 import BeautifulSoup, Comment
 import matplotlib
 from matplotlib.backends.backend_svg import FigureCanvasSVG
 from matplotlib.figure import Figure
@@ -112,7 +114,32 @@ def generate_captcha():
     stream = io.StringIO()
     fig.savefig(stream, transparent=True, bbox_inches="tight", pad_inches=0)
 
-    return (stream.getvalue(), result,)
+    soup = BeautifulSoup(stream.getvalue(), "html5lib")
+    for comment in soup.find_all(
+            text=lambda elem: isinstance(elem, Comment)):
+        comment.extract()
+    svg_elem = soup.find("svg")
+    svg_elem["style"] = "vertical-align: middle;"
+    # number = float(svg_elem["width"][:-2])
+    # svg_elem["width"] = str(number * MATHJAX_FONT_SIZE_MULTIPLIER) + "pt"
+    # number = float(svg_elem["height"][:-2])
+    # svg_elem["height"] = str(number * MATHJAX_FONT_SIZE_MULTIPLIER) + "pt"
+
+    path_ids = {}
+    path_uuids = set()
+    text_elem = svg_elem.find(id="text_1")
+    for path in text_elem.defs.find_all("path"):
+        if path["id"] not in path_ids:
+            new_id = uuid4().hex
+            while new_id in path_uuids:
+                new_id = uuid4().hex
+            path_ids[path["id"]] = new_id
+        path["id"] = path_ids[path["id"]]
+    for use_elem in text_elem.g.find_all("use"):
+        old_id = use_elem["xlink:href"][1:]
+        use_elem["xlink:href"] = '#' + path_ids[old_id]
+
+    return (str(svg_elem), result,)
 
 
 random.seed()
