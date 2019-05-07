@@ -152,7 +152,7 @@ def get_captcha():
         # number = float(svg_elem["height"][:-2])
         # svg_elem["height"] = str(number * MATHJAX_FONT_SIZE_MULTIPLIER) + "pt"
 
-        return (captcha_uuid, Markup(str(soup)),)
+        return (captcha_uuid, Markup(str(svg_elem)),)
 
 
 def verify_captcha(captcha_uuid, value):
