@@ -243,24 +243,14 @@ AND thread_id = :thread_id
 ORDER BY creation_time ASC;""", {"board_name": board_name,
                                  "thread_id": thread_id}).fetchall()
     converted_result = []
-    if board_name == "sandbox":
-        for item in result:
-            converted_result.append(
-                (item[0], Markup(item[1]),
-                 datetime.strftime(
-                     datetime.strptime(
-                         item[2],
-                         "%Y-%m-%d %H:%M:%S.%f"),
-                     "%Y-%m-%d %H:%M:%S"),))
-    else:
-        for item in result:
-            converted_result.append(
-                (item[0], Markup(markdown_to_html(item[1])),
-                 datetime.strftime(
-                     datetime.strptime(
-                         item[2],
-                         "%Y-%m-%d %H:%M:%S.%f"),
-                     "%Y-%m-%d %H:%M:%S"),))
+    for item in result:
+        converted_result.append(
+            (item[0], Markup(item[1]),
+             datetime.strftime(
+                 datetime.strptime(
+                     item[2],
+                     "%Y-%m-%d %H:%M:%S.%f"),
+                 "%Y-%m-%d %H:%M:%S"),))
     return render_template("thread.html",
                            site_name=SITE_NAME,
                            announce=ANNOUNCE,
@@ -273,6 +263,26 @@ ORDER BY creation_time ASC;""", {"board_name": board_name,
                            captcha=captcha if "captcha" in locals() else None)
 
 
+def verify_request_with_markdown(field_name):
+    """Filter text from `field_name` and check its length."""
+    if request.form[field_name] is None:
+        abort(403, Markup("Value <code>{}</code> is required."
+                          .format(field_name)))
+    initial_text = markdown_to_html(request.form[field_name].replace(
+        "\r\n", "\n"))
+    string_length = len(initial_text[0])
+    if string_length < 3 or string_length > 10000:
+        abort(403, Markup("""\
+Length of processed <code>{0}</code> must lie in range from 3 to 10000.
+<br><br>
+<code>{0}</code> after processing ({1} characters):
+<pre><code>{2}</code></pre>
+""".format(field_name,
+           len(initial_text[0]),
+           Markup.escape(initial_text[0]))))
+    return initial_text[1]
+
+
 # @SERVER.route("/<board_name>/create_thread", methods=["POST"])
 def create_thread(board_name):
     """Create new thread in board."""
@@ -282,16 +292,12 @@ def create_thread(board_name):
         abort(403, Markup("Value <code>thread_title</code> is required."))
     string_length = len(request.form["thread_title"])
     if string_length < 3 or string_length > 10000:
-        abort(403, Markup("Length of value <code>thread_title</code>" +
+        abort(403, Markup("Length of <code>thread_title</code>" +
                           " must lie in range from 3 to 10000."))
-    if request.form["initial_text"] is None:
-        abort(403, Markup("Value <code>initial_text</code> is required."))
-    initial_text = request.form["initial_text"].replace(
-        "\r\n", "\n")
-    string_length = len(initial_text)
-    if string_length < 3 or string_length > 10000:
-        abort(403, Markup("Length of value <code>initial_text</code>" +
-                          " must lie in range from 3 to 10000."))
+    if board_name == "sandbox":
+        text = request.form["initial_text"]
+    else:
+        text = verify_request_with_markdown("initial_text")
 
     result = verify_captcha(request.form["uuid"],
                             int(request.form["expr_value"]))
@@ -350,7 +356,7 @@ VALUES (:board_name, :post_id,
                        {"board_name": board_name,
                         "post_id": post_id,
                         "creation_time": time,
-                        "content": initial_text})
+                        "content": text})
 
         if post_id == 0:
             cursor.execute("""
@@ -373,13 +379,10 @@ def create_post(board_name, thread_id):
     """Create new post in thread."""
     if board_name not in BOARD_DICT:
         abort(404)
-    if request.form["content"] is None:
-        abort(403, Markup("Value <code>content</code> is required."))
-    post_text = request.form["content"].replace("\r\n", "\n")
-    string_length = len(post_text)
-    if string_length < 3 or string_length > 10000:
-        abort(403, Markup("Length of value <code>content</code>" +
-                          " must lie in range from 3 to 10000."))
+    if board_name == "sandbox":
+        text = request.form["content"]
+    else:
+        text = verify_request_with_markdown("content")
 
     if board_name != "sandbox":
         result = verify_captcha(request.form["uuid"],
@@ -436,7 +439,7 @@ VALUES (:board_name, :post_id,
                        {"board_name": board_name,
                         "post_id": post_id,
                         "creation_time": time,
-                        "content": post_text})
+                        "content": text})
 
         if post_id == 0:
             cursor.execute("""

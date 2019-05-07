@@ -22,8 +22,9 @@ def markdown_to_html(text):
     """
     Text filter which does the following:
     - Process text with Markdown
-    - Process result with Bleach
+    - Process result with Bleach (with stripping disallowed tags)
     - Delete all non-MathJax scripts
+    - Return tuple (text without tags, text with tags)
     """
     html_text = markdown(text,
                          extensions=[MathExtension(
@@ -31,13 +32,15 @@ def markdown_to_html(text):
                              add_preview=True)],
                          output_format="html5")
     clean_text = bleach.clean(html_text,
-                              ALLOWED_TAGS, ALLOWED_ATTRS, standard_styles)
+                              ALLOWED_TAGS, ALLOWED_ATTRS, standard_styles,
+                              strip=True)
     soup = BeautifulSoup(clean_text, "html5lib")
     for script_tag in soup.find_all("script"):
-        if not script_tag.attrs.get("type", False).startswith("math/tex"):
+        if not script_tag.attrs.get("type", '').startswith("math/tex"):
             script_tag.extract()
     for span_tag in soup.find_all("span"):
         if span_tag.attrs.get("class", False)\
                 and "MathJax_Preview" not in span_tag.attrs["class"]:
             span_tag.extract()
-    return str(soup)
+    return (soup.body.get_text(),
+            ''.join(map(str, soup.body.contents)),)
