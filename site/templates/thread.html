@@ -1,8 +1,8 @@
 {% extends "layout.html" %}
 {% block title %}/{{ board_info[0] }}/ &mdash; {{ thread_title }} | {{ site_name }}{% endblock %}
 {% block add_to_head %}
-        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/form.css') }}">
-        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/table.css') }}">
+        <link href="{{ url_for('static', filename='css/form.css') }}" rel="stylesheet" type="text/css">
+        <link href="{{ url_for('static', filename='css/table.css') }}" rel="stylesheet" type="text/css">
         <style>label:not(.expression) { width: 10vw; }</style>
         <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML' async></script>
 {% endblock %}
