@@ -34,7 +34,7 @@ def markdown_to_html(text):
                               ALLOWED_TAGS, ALLOWED_ATTRS, standard_styles)
     soup = BeautifulSoup(clean_text, "html5lib")
     for script_tag in soup.find_all("script"):
-        if script_tag.attrs.get("type", False) != "math/tex":
+        if not script_tag.attrs.get("type", False).startswith("math/tex"):
             script_tag.extract()
     for span_tag in soup.find_all("span"):
         if span_tag.attrs.get("class", False)\
