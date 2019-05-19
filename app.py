@@ -20,55 +20,46 @@ from setup import setup_database
 from text_filter import markdown_to_html
 
 
-CONFIG = ConfigParser()
-CONFIG.read("config.ini", encoding="utf-8")
-SITE_NAME = CONFIG["Common"]["SiteName"]
-ANNOUNCE = Markup(CONFIG["Common"]["Announcement"]
-                  ) if "Announcement" in CONFIG["Common"] else None
+config = ConfigParser()  # pylint: disable=invalid-name
+config.read("config.ini", encoding="utf-8")
+SITE_NAME = config["Common"]["SiteName"]
+ANNOUNCE = Markup(config["Common"]["Announcement"]
+                  ) if "Announcement" in config["Common"] else None
 
-if not os.path.exists(CONFIG["Common"]["DatabaseFile"]):
-    setup_database(CONFIG["Common"]["DatabaseFile"])
+if not os.path.exists(config["Common"]["DatabaseFile"]):
+    setup_database(config["Common"]["DatabaseFile"])
 
-BOARD_DICT = {}
-DEFAULT_LANG = CONFIG["LanguageFiles"].pop("Default", "en")
-LANG_CONFIG = ConfigParser(interpolation=ExtendedInterpolation())
-LANG_CONFIG.read_dict(CONFIG)
-LANG_CONFIG.read(CONFIG["LanguageFiles"][DEFAULT_LANG], encoding="utf-8")
-for board in LANG_CONFIG["Boards"]:
-    BOARD_DICT[board] = LANG_CONFIG["Boards"][board]
-# LANG_CONFIG = {}
-# for lang in CONFIG["LanguageFiles"]:
-#     cur_config = ConfigParser(interpolation=ExtendedInterpolation())
-#     LANG_CONFIG[lang] = cur_config
-#     cur_config.read_dict(CONFIG)
-#     cur_config.read(CONFIG["LanguageFiles"][DEFAULT_LANG], encoding="utf-8")
-#     for board in cur_config["Boards"]:
-#         BOARD_DICT[board] = cur_config["Boards"][board]
+DEFAULT_LANG = config["LanguageFiles"].pop("Default", "en")
+lang_config = ConfigParser(  # pylint: disable=invalid-name
+    interpolation=ExtendedInterpolation())
+lang_config.read_dict(config)
+lang_config.read(config["LanguageFiles"][DEFAULT_LANG], encoding="utf-8")
+BOARD_DICT = dict(lang_config["Boards"])
 
-SERVER = Flask(SITE_NAME, static_folder=CONFIG["Common"]["StaticFolder"],
-               template_folder=CONFIG["Common"]["TemplateFolder"])
-SERVER.jinja_env.trim_blocks = True
-SERVER.jinja_env.lstrip_blocks = True
-# BABEL = Babel(server)
+app = Flask(SITE_NAME,  # pylint: disable=invalid-name
+            static_folder=config["Common"]["StaticFolder"],
+            template_folder=config["Common"]["TemplateFolder"])
+app.jinja_env.trim_blocks = True
+app.jinja_env.lstrip_blocks = True
 
 DB_LOCK = threading.Lock()
 
 CAPTCHA_LOCK = threading.Lock()
-CAPTCHA_QUEUE = deque()
-CAPTCHA_VALUES = dict()
-MAX_CAPTCHA_QUEUE_SIZE = CONFIG.getint("Common", "MaxCaptchaQueueSize")
-CAPTCHA_RESULT = Enum("CAPTCHA_RESULT", "NOT_FOUND WRONG CORRECT")
+captcha_queue = deque()  # pylint: disable=invalid-name
+captcha_values = dict()  # pylint: disable=invalid-name
+MAX_CAPTCHA_QUEUE_SIZE = config.getint("Common", "MaxCaptchaQueueSize")
+CaptchaResult = Enum("CAPTCHA_RESULT", "NOT_FOUND WRONG CORRECT")  # pylint: disable=invalid-name
 
 
 def get_db():
     """Get Connection object."""
     if "db_connection" not in g:
-        g.db_connection = sqlite3.connect(CONFIG["Common"]["DatabaseFile"])
+        g.db_connection = sqlite3.connect(config["Common"]["DatabaseFile"])
     return g.db_connection
 
 
 # pylint: disable=unused-argument
-@SERVER.teardown_appcontext
+@app.teardown_appcontext
 def teardown_db(exception):
     """Close database connection."""
     db_connection = g.pop("db_connection", None)
@@ -76,7 +67,7 @@ def teardown_db(exception):
         db_connection.close()
 
 
-@SERVER.route("/")
+@app.route("/")
 def home():
     """Generate and return homepage."""
     return render_template("index.html",
@@ -85,7 +76,7 @@ def home():
                            board_list=BOARD_DICT.items())
 
 
-@SERVER.route("/rules")
+@app.route("/rules")
 def rules():
     """Generate and return page with rules."""
     return render_template("rules.html",
@@ -93,7 +84,7 @@ def rules():
                            announce=ANNOUNCE)
 
 
-@SERVER.route("/about")
+@app.route("/about")
 def about():
     """Generate and return "About" page."""
     return render_template("about.html",
@@ -101,7 +92,7 @@ def about():
                            announce=ANNOUNCE)
 
 
-@SERVER.route("/<board_name>/", methods=["GET", "POST"])
+@app.route("/<board_name>/", methods=["GET", "POST"])
 def board_handler(board_name):
     """Handler for board page (postback + PRG)."""
     if request.method == "GET":
@@ -110,7 +101,7 @@ def board_handler(board_name):
         return create_thread(board_name)
 
 
-@SERVER.route("/<board_name>/<int:thread_id>", methods=["GET", "POST"])
+@app.route("/<board_name>/<int:thread_id>", methods=["GET", "POST"])
 def thread_handler(board_name, thread_id):
     """Handler for thread page (postback + PRG)."""
     if request.method == "GET":
@@ -119,7 +110,7 @@ def thread_handler(board_name, thread_id):
         return create_post(board_name, thread_id)
 
 
-@SERVER.route("/<board_name>/arch/<int:thread_id>")
+@app.route("/<board_name>/arch/<int:thread_id>")
 def archived_thread_handler(board_name, thread_id):
     """Handler for archived thread page."""
     return get_thread(board_name, thread_id, True)
@@ -130,14 +121,14 @@ def get_captcha():
     with CAPTCHA_LOCK:
         captcha = generate_captcha()
         captcha_uuid = uuid4().hex
-        while captcha_uuid in CAPTCHA_VALUES:
+        while captcha_uuid in captcha_values:
             captcha_uuid = uuid4().hex
 
-        if len(CAPTCHA_QUEUE) == MAX_CAPTCHA_QUEUE_SIZE:
-            deleted_uuid = CAPTCHA_QUEUE.popleft()
-            del CAPTCHA_VALUES[deleted_uuid]
-        CAPTCHA_QUEUE.append((captcha_uuid, captcha[0],))
-        CAPTCHA_VALUES[captcha_uuid] = captcha[1]
+        if len(captcha_queue) == MAX_CAPTCHA_QUEUE_SIZE:
+            deleted_uuid = captcha_queue.popleft()
+            del captcha_values[deleted_uuid]
+        captcha_queue.append((captcha_uuid, captcha[0],))
+        captcha_values[captcha_uuid] = captcha[1]
 
         return (captcha_uuid, Markup(captcha[0]),)
 
@@ -145,16 +136,15 @@ def get_captcha():
 def verify_captcha(captcha_uuid, value):
     """Check if answer to CAPTCHA is correct."""
     with CAPTCHA_LOCK:
-        if captcha_uuid not in CAPTCHA_VALUES:
-            return CAPTCHA_RESULT.NOT_FOUND
-        answer = CAPTCHA_VALUES[captcha_uuid]
-        del CAPTCHA_VALUES[captcha_uuid]
+        if captcha_uuid not in captcha_values:
+            return CaptchaResult.NOT_FOUND
+        answer = captcha_values[captcha_uuid]
+        del captcha_values[captcha_uuid]
         if answer != value:
-            return CAPTCHA_RESULT.WRONG
-        return CAPTCHA_RESULT.CORRECT
+            return CaptchaResult.WRONG
+        return CaptchaResult.CORRECT
 
 
-# @SERVER.route("/<board_name>/")
 def get_board(board_name):
     """Generate and return page of board."""
     if board_name not in BOARD_DICT:
@@ -183,7 +173,7 @@ ORDER BY bumping_time DESC;""", {"board_name": board_name}).fetchall()
                            captcha=captcha)
 
 
-@SERVER.route("/<board_name>/arch/")
+@app.route("/<board_name>/arch/")
 def get_archive(board_name):
     """Generate and return page of "board archive"."""
     if board_name not in BOARD_DICT:
@@ -212,7 +202,6 @@ LIMIT 20 OFFSET :offset;""", {"board_name": board_name,
                            threads=converted_result)
 
 
-# @SERVER.route("/<board_name>/<int:thread_id>")
 def get_thread(board_name, thread_id, from_archive=False):
     """Generate and return page of thread."""
     if board_name not in BOARD_DICT:
@@ -283,7 +272,6 @@ Length of processed <code>{0}</code> must lie in range from 3 to 10000.
     return initial_text[1]
 
 
-# @SERVER.route("/<board_name>/create_thread", methods=["POST"])
 def create_thread(board_name):
     """Create new thread in board."""
     if board_name not in BOARD_DICT:
@@ -301,9 +289,9 @@ def create_thread(board_name):
 
     result = verify_captcha(request.form["uuid"],
                             int(request.form["expr_value"]))
-    if result == CAPTCHA_RESULT.NOT_FOUND:
+    if result == CaptchaResult.NOT_FOUND:
         abort(403, "Invalid CAPTCHA ID. Please go back and try again.")
-    if result == CAPTCHA_RESULT.WRONG:
+    if result == CaptchaResult.WRONG:
         abort(403, "Wrong answer to CAPTCHA. Please go back and try again.")
 
     with DB_LOCK:
@@ -325,7 +313,7 @@ SELECT thread_id
 FROM thread_info
 WHERE NOT archived AND board_name = :board_name
 ORDER BY bumping_time ASC;""", {"board_name": board_name}).fetchall()
-        if len(threads) == CONFIG.getint("BumpLimits", board_name):
+        if len(threads) == config.getint("BumpLimits", board_name):
             thread_id = threads[0][0]
             cursor.execute("""
 UPDATE thread_info
@@ -374,7 +362,6 @@ WHERE board_name = :board_name;""", {"board_name": board_name,
                                 thread_id=post_id), 303)
 
 
-# @SERVER.route("/<board_name>/<int:thread_id>/create_post", methods=["POST"])
 def create_post(board_name, thread_id):
     """Create new post in thread."""
     if board_name not in BOARD_DICT:
@@ -387,10 +374,10 @@ def create_post(board_name, thread_id):
     if board_name != "sandbox":
         result = verify_captcha(request.form["uuid"],
                                 int(request.form["expr_value"]))
-        if result == CAPTCHA_RESULT.NOT_FOUND:
+        if result == CaptchaResult.NOT_FOUND:
             abort(403,
                   "Invalid CAPTCHA ID. Please go back and try again.")
-        if result == CAPTCHA_RESULT.WRONG:
+        if result == CaptchaResult.WRONG:
             abort(403,
                   "Wrong answer to CAPTCHA. Please go back and try again.")
 
