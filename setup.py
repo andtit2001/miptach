@@ -1,9 +1,19 @@
+# -*- coding: utf-8 -*-
+"""Module/script for setting up imageboard's database"""
+from argparse import ArgumentParser
+import errno
+import os
+import os.path
 import sqlite3
+import sys
 
-CONN = sqlite3.connect("db/imageboard.db")
-CURSOR = CONN.cursor()
 
-CURSOR.executescript("""
+def setup_database(db_path):
+    """Set up database."""
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    cursor.executescript("""
 CREATE TABLE IF NOT EXISTS counters (
 board_name VARCHAR(10) PRIMARY KEY,
 post_counter INTEGER
@@ -48,5 +58,17 @@ CREATE TABLE IF NOT EXISTS resources (
 id INTEGER PRIMARY KEY, res_type VARCHAR(4), original_name TEXT
 );
 """)
-CONN.commit()
-CONN.close()
+    conn.commit()
+    conn.close()
+
+
+if __name__ == "__main__":
+    PARSER = ArgumentParser(description="\
+        Set up database for imageboard (create new file <path>)")
+    PARSER.add_argument("path", help="Path to file with SQLite database")
+    # pylint: disable=invalid-name
+    path = PARSER.parse_args().path
+    if os.path.exists(path):
+        print("Error: " + os.strerror(errno.EEXIST))
+        sys.exit(1)
+    setup_database(path)
