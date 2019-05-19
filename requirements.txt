@@ -1,8 +1,8 @@
 beautifulsoup4
 bleach
 bleach-whitelist
-inflect
 markdown
+matplotlib
 Flask
 # flask-babel
 html5lib

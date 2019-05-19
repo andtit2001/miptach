@@ -1,10 +1,21 @@
 """This module provides function for generating arithmetic CAPTCHA."""
 from math import sqrt
+import io
 import random
 
-import inflect
+import matplotlib
+from matplotlib.backends.backend_svg import FigureCanvasSVG
+from matplotlib.figure import Figure
+# from matplotlib import font_manager
 
-ENGINE = inflect.engine()
+DEFAULT_FONT_SIZE_PT = 12
+MATHJAX_FONT_SIZE_MULTIPLIER = 1.24
+matplotlib.rcParams.update(
+    {'font.size': DEFAULT_FONT_SIZE_PT * MATHJAX_FONT_SIZE_MULTIPLIER})
+matplotlib.rcParams["mathtext.fontset"] = "cm"
+# FONTPROP = font_manager.FontProperties(
+#     fname="site/static/js/MathJax/fonts/HTML-CSS/TeX/\
+# otf/MathJax_Main-Regular.otf")
 
 
 def is_prime(num):
@@ -78,20 +89,30 @@ class ArithmeticTree:
 
     def __str__(self):
         if isinstance(self.value, int):
-            return ENGINE.number_to_words(self.value, andword='')
+            return str(self.value)
         str_list = []
         for child in self.children:
             if self.value == '*' and child.value == '+':
                 str_list.append("({})".format(str(child)))
             else:
                 str_list.append(str(child))
-        return " {} ".format(self.value).join(str_list)
+        return " {} ".format(self.value.replace('*', "\\cdot")).join(str_list)
 
 
 def generate_captcha():
     """Generate arithmetic CAPTCHA."""
     result = random.randrange(5, 100)
-    return (str(ArithmeticTree.generate(result, 5)), result,)
+    tree = ArithmeticTree.generate(result, 5)
+
+    fig = Figure()
+    # pylint: disable=unused-variable
+    canvas = FigureCanvasSVG(fig)
+    fig.text(.5, .5, '$' + str(tree) + '$')
+    # fig.text(.5, .5, '$' + str(tree) + '$', fontproperties=FONTPROP)
+    stream = io.StringIO()
+    fig.savefig(stream, transparent=True, bbox_inches="tight", pad_inches=0)
+
+    return (stream.getvalue(), result,)
 
 
 random.seed()
