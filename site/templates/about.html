@@ -1,9 +1,30 @@
 {% extends "layout.html" %}
 {% block title %}About {{ site_name }}{% endblock %}
 {% block content %}
-            <p><a href="/">{{ site_name }}</a> is an anonymous imageboard which tries to be simple yet convenient.</p>
-            <p>
-                Developer &mdash; <a href="https://vk.com/andtit2001" target="_blank">andtit2001</a><br>
-                Administrator &mdash; <a href="https://vk.com/andtit2001" target="_blank">andtit2001</a>
-            </p>
+            <h2>About {{ site_name }}</h2>
+            <section>
+                <h3>What is this site?</h3>
+                <p>{{ site_name }} is an anonymous imageboard which tries to be simple yet convenient.</p>
+                <p>Source code of the site (frontend + backend) is available on <a href="https://github.com/andtit2001/miptach" target="_blank">GitHub</a>.</p>
+            </section>
+            <section>
+                <h3>List of staff</h3>
+                <ul>
+                    <li>Developer &mdash; <a href="#contact-andtit2001">andtit2001</a></li>
+                    <li>Administrator &mdash; <a href="#contact-andtit2001">andtit2001</a></li>
+                    <li>Testers:
+                        <ul>
+                            <li>exploit228</li>
+                        </ul>
+                    </li>
+                </ul>
+            </section>
+            <section>
+                <h3>Contacts</h3>
+                <ul>
+                    <li>
+                        <a id="contact-andtit2001">andtit2001</a> &mdash; <a href="https://vk.com/andtit2001" target="_blank">VK</a>, e-mail: <code><script>document.write("&#116;&#105;&#116;&#111;&#118;&#46;&#97;")</script>&#107;&#64;&#112;&#104;&#121;&#115;&#116;&#101;&#99;&#104;&#46;&#101;&#100;&#117;</code>
+                    </li>
+                </ul>
+            </section>
 {% endblock %}
