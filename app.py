@@ -6,6 +6,7 @@ from datetime import datetime
 from enum import Enum
 import logging
 from logging.handlers import TimedRotatingFileHandler
+import os.path
 import sqlite3
 import threading
 from uuid import uuid4
@@ -15,13 +16,18 @@ from flask import Flask, abort, g, redirect, render_template, request
 from markupsafe import Markup
 
 from captcha import generate_captcha
+from setup import setup_database
 from text_filter import markdown_to_html
+
 
 CONFIG = ConfigParser()
 CONFIG.read("config.ini", encoding="utf-8")
 SITE_NAME = CONFIG["Common"]["SiteName"]
 ANNOUNCE = Markup(CONFIG["Common"]["Announcement"]
                   ) if "Announcement" in CONFIG["Common"] else None
+
+if not os.path.exists(CONFIG["Common"]["DatabaseFile"]):
+    setup_database(CONFIG["Common"]["DatabaseFile"])
 
 BOARD_DICT = {}
 DEFAULT_LANG = CONFIG["LanguageFiles"].pop("Default", "en")
