@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block title %}/{{ board_info[0] }}/ &mdash; {{ thread_title }} | {{ site_name }}{% endblock %}
+{% block add_to_head %}
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/form.css') }}">
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/table.css') }}">
+        <style>label { width: 5vw; }</style>
+{% endblock %}
+{% block content %}
+        <script type="text/javascript">
+            var visible = false
+            var template = document.createElement("template")
+            template.innerHTML = `
+        <form id="form" action="/{{ board_info[0] }}/{{ thread_id }}" method="POST">
+            <div>
+                <label for="text">Text:</label>
+                <textarea id="text" name="content" required minlength="3" maxlength="10000"></textarea>
+            </div>
+            <div class="button">
+                <button type="submit">Send</button>
+            </div>
+        </form>`
+            var form = template.content
+
+            function toggle_form() {
+                if (visible) {
+                    var elem = document.getElementById("form")
+                    elem.parentNode.removeChild(elem)
+                } else {
+                    var elem = document.getElementById("insert_before_that")
+                    elem.parentNode.insertBefore(form.cloneNode(true), elem)
+                }
+                visible = !visible
+            }
+        </script>
+        
+        <div>
+            <h2><a href="/{{ board_info[0] }}/">/{{ board_info[0] }}/ &mdash; {{ board_info[1] }}</a></h2>
+            <section>
+            <h3>{{ thread_title }}</h3>
+            <table>
+                <thead><tr><th>ID</th><th>Post</th><th>Creation time</th></tr></thead>
+                {% for post in posts %}
+                <tr>
+                    <td class="id"><a name="{{ post[0] }}" href="#{{ post[0] }}">{{ post[0] }}</a></td>
+                    <td class="content" style="word-wrap: break-word;">{{ post[1] }}</td>
+                    <td class="time">{{ post[2] }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            </section>
+            <div>
+            <h3><a href="javascript:toggle_form()">Create post</a></h3>
+            <a id="insert_before_that"></a>
+            </div>
+        </div>
+{% endblock %}

@@ -1,0 +1,11 @@
+body {
+    font-family: monospace;
+}
+header h1, .announce h2 {
+    border-bottom: 1px solid #808080;
+    padding-bottom: 0.25em;
+}
+footer {
+    border-top: 1px solid #808080;
+    margin-top: 1em;
+}

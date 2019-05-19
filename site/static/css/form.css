@@ -1,0 +1,16 @@
+form div + div {
+    margin-top: 1em;
+}
+label {
+    display: inline-block;
+    /* you need to specify width */
+}
+input, textarea {
+    font: 1em monospace;
+    box-sizing: border-box;
+    width: 35vw;
+}
+textarea {
+    min-height: 10em;
+    vertical-align: top;
+}
