@@ -5,7 +5,16 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}{% endblock %}</title>
         <link href="{{ url_for('static', filename='favicon.ico') }}" rel="icon">
-        <link href="https://fonts.googleapis.com/css?family=Noto+Sans|Roboto|Roboto+Mono&amp;subset=cyrillic" rel="stylesheet">
+        <style>
+@font-face {
+    font-family: 'Noto Sans';
+    src: url("{{ url_for('static', filename='fonts/NotoSans-Regular.ttf') }}")
+}
+@font-face {
+    font-family: 'Noto Sans Mono';
+    src: url("{{ url_for('static', filename='fonts/NotoSansMono-Regular.ttf') }}")
+}
+        </style>
         <link href="{{ url_for('static', filename='css/default.css') }}" rel="stylesheet" type="text/css">
         {% block add_to_head %}{% endblock %}
     </head>
