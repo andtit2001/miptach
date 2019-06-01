@@ -7,11 +7,12 @@ from enum import Enum
 import logging
 from logging.handlers import TimedRotatingFileHandler
 import os.path
+import shutil
 import sqlite3
 import threading
-from uuid import uuid4
 
-from flask import Flask, abort, g, redirect, render_template, request, url_for
+from flask import (Flask, abort, g, redirect, render_template, request,
+                   send_file, url_for)
 # from flask.ext.babel import Babel
 from markupsafe import Markup
 
@@ -25,9 +26,13 @@ config.read("config.ini", encoding="utf-8")
 SITE_NAME = config["Common"]["SiteName"]
 ANNOUNCE = Markup(config["Common"]["Announcement"]
                   ) if "Announcement" in config["Common"] else None
+CAPTCHA_DIR = config["Common"]["CaptchaFolder"]
 
 if not os.path.exists(config["Common"]["DatabaseFile"]):
     setup_database(config["Common"]["DatabaseFile"])
+if os.path.exists(CAPTCHA_DIR):
+    shutil.rmtree(CAPTCHA_DIR)
+os.mkdir(CAPTCHA_DIR)
 
 DEFAULT_LANG = config["LanguageFiles"].pop("Default", "en")
 lang_config = ConfigParser(  # pylint: disable=invalid-name
@@ -48,7 +53,8 @@ CAPTCHA_LOCK = threading.Lock()
 captcha_queue = deque()  # pylint: disable=invalid-name
 captcha_values = dict()  # pylint: disable=invalid-name
 MAX_CAPTCHA_QUEUE_SIZE = config.getint("Common", "MaxCaptchaQueueSize")
-CaptchaResult = Enum("CAPTCHA_RESULT", "NOT_FOUND WRONG CORRECT")  # pylint: disable=invalid-name
+CaptchaResult = Enum(  # pylint: disable=invalid-name
+    "CAPTCHA_RESULT", "NOT_FOUND WRONG CORRECT")
 
 
 def get_db():
@@ -119,10 +125,11 @@ def archived_thread_handler(board_name, thread_id):
 def get_captcha():
     """Generate new CAPTCHA."""
     with CAPTCHA_LOCK:
-        captcha = generate_captcha()
-        captcha_uuid = uuid4().hex
-        while captcha_uuid in captcha_values:
-            captcha_uuid = uuid4().hex
+        captcha = generate_captcha(
+            webp=config.getboolean("Common", "EnableWebp"),
+            uuid_set=captcha_values,
+            img_dir=CAPTCHA_DIR)
+        captcha_uuid = captcha[2]
 
         if len(captcha_queue) == MAX_CAPTCHA_QUEUE_SIZE:
             deleted_uuid = captcha_queue.popleft()
@@ -143,6 +150,15 @@ def verify_captcha(captcha_uuid, value):
         if answer != value:
             return CaptchaResult.WRONG
         return CaptchaResult.CORRECT
+
+
+@app.route("/captcha/<filename>")
+def get_captcha_image(filename):
+    """Captcha image router"""
+    full_name = CAPTCHA_DIR + '/' + filename
+    if not os.path.exists(full_name):
+        abort(404)
+    return send_file(full_name)
 
 
 def get_board(board_name):

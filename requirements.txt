@@ -1,9 +1,10 @@
 beautifulsoup4
 bleach
 bleach-whitelist
-markdown
-matplotlib
+CairoSVG
 Flask
 # flask-babel
 html5lib
+Markdown
+matplotlib
 python-markdown-math

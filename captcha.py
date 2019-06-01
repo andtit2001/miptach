@@ -1,30 +1,30 @@
 """This module provides function for generating arithmetic CAPTCHA."""
-from math import sqrt
 import io
+import math
 import random
+import subprocess
 from uuid import uuid4
 
-from bs4 import BeautifulSoup, Comment
+from bs4 import BeautifulSoup
+from cairosvg import svg2png
 import matplotlib
 from matplotlib.backends.backend_svg import FigureCanvasSVG
 from matplotlib.figure import Figure
-# from matplotlib import font_manager
 
 DEFAULT_FONT_SIZE_PT = 12
 MATHJAX_FONT_SIZE_MULTIPLIER = 1.24
 matplotlib.rcParams.update(
     {'font.size': DEFAULT_FONT_SIZE_PT * MATHJAX_FONT_SIZE_MULTIPLIER})
 matplotlib.rcParams["mathtext.fontset"] = "cm"
-# FONTPROP = font_manager.FontProperties(
-#     fname="site/static/js/MathJax/fonts/HTML-CSS/TeX/\
-# otf/MathJax_Main-Regular.otf")
+
+DEFAULT_DPI = 96
 
 
 def is_prime(num):
     """Check if `num` is prime number (trial division)."""
     if num < 2:
         return False
-    for div in range(2, int(sqrt(num)) + 1):
+    for div in range(2, int(math.sqrt(num)) + 1):
         if num % div == 0:
             return False
     return True
@@ -101,7 +101,49 @@ class ArithmeticTree:
         return " {} ".format(self.value.replace('*', "\\cdot")).join(str_list)
 
 
-def generate_captcha():
+def transform_image(svg_elem):
+    """Apply transformation to the given SVG element."""
+
+    figure_elem = svg_elem.find(id="figure_1")
+    skews = (random.randint(-20, 20), random.randint(-20, 20),)
+
+    figure_elem["transform"] = "skewX({})skewY({})".format(*skews)
+    # Strip "pt" from the end
+    img_width = float(svg_elem["width"][:-2])
+    img_height = float(svg_elem["height"][:-2])
+
+    basis = [
+        [1, 0],
+        [0, 1]
+    ]
+    basis[1][0] += math.tan(math.radians(skews[0])) * basis[0][0]
+    basis[1][1] += math.tan(math.radians(skews[0])) * basis[0][1]
+    basis[0][0] += math.tan(math.radians(skews[1])) * basis[1][0]
+    basis[0][1] += math.tan(math.radians(skews[1])) * basis[1][1]
+
+    # "BP" means "bounding parallelogram"
+    bp_vertices = [
+        (0, 0),
+        (basis[0][0] * img_width, basis[0][1] * img_width),
+        (basis[0][0] * img_width + basis[1][0] * img_height,
+         basis[0][1] * img_width + basis[1][1] * img_height),
+        (basis[1][0] * img_height, basis[1][1] * img_height),
+    ]
+    coords = tuple(zip(*bp_vertices))
+    viewbox = [
+        min(*coords[0]),
+        min(*coords[1]),
+        max(*coords[0]),
+        max(*coords[1]),
+    ]
+    viewbox[2] -= viewbox[0]
+    viewbox[3] -= viewbox[1]
+    svg_elem["width"] = str(viewbox[2]) + "pt"
+    svg_elem["height"] = str(viewbox[3]) + "pt"
+    svg_elem["viewBox"] = ' '.join(map(str, viewbox))
+
+
+def generate_captcha(webp=False, uuid_set=None, img_dir="."):
     """Generate arithmetic CAPTCHA."""
     result = random.randrange(5, 100)
     tree = ArithmeticTree.generate(result, 5)
@@ -110,36 +152,37 @@ def generate_captcha():
     # pylint: disable=unused-variable
     canvas = FigureCanvasSVG(fig)
     fig.text(.5, .5, '$' + str(tree) + '$')
-    # fig.text(.5, .5, '$' + str(tree) + '$', fontproperties=FONTPROP)
     stream = io.StringIO()
     fig.savefig(stream, transparent=True, bbox_inches="tight", pad_inches=0)
 
     soup = BeautifulSoup(stream.getvalue(), "html5lib")
-    for comment in soup.find_all(
-            text=lambda elem: isinstance(elem, Comment)):
-        comment.extract()
     svg_elem = soup.find("svg")
-    svg_elem["style"] = "vertical-align: middle;"
-    # number = float(svg_elem["width"][:-2])
-    # svg_elem["width"] = str(number * MATHJAX_FONT_SIZE_MULTIPLIER) + "pt"
-    # number = float(svg_elem["height"][:-2])
-    # svg_elem["height"] = str(number * MATHJAX_FONT_SIZE_MULTIPLIER) + "pt"
+    transform_image(svg_elem)
 
-    path_ids = {}
-    path_uuids = set()
-    text_elem = svg_elem.find(id="text_1")
-    for path in text_elem.defs.find_all("path"):
-        if path["id"] not in path_ids:
-            new_id = uuid4().hex
-            while new_id in path_uuids:
-                new_id = uuid4().hex
-            path_ids[path["id"]] = new_id
-        path["id"] = path_ids[path["id"]]
-    for use_elem in text_elem.g.find_all("use"):
-        old_id = use_elem["xlink:href"][1:]
-        use_elem["xlink:href"] = '#' + path_ids[old_id]
+    filename = uuid4().hex
+    if uuid_set:
+        while filename in uuid_set:
+            filename = uuid4().hex
+    # Picture is upscaled to prevent blur
+    svg2png(bytestring=str(svg_elem),
+            write_to=img_dir + '/' + filename + ".png",
+            dpi=DEFAULT_DPI * 2)
+    if webp:
+        subprocess.run(["cwebp",
+                        "-quiet",
+                        "-z", "9",
+                        img_dir + '/' + filename + ".png",
+                        "-o", img_dir + '/' + filename + ".webp"])
 
-    return (str(svg_elem), result,)
+    html_text = """
+                    <picture>
+                        {}<img src="/captcha/{}.png" style="vertical-align: middle; width: {};">
+                    </picture>
+                """.format("""<source srcset="/captcha/{}.webp">
+                        """.format(filename) if webp else "",
+                           filename, svg_elem["width"])
+
+    return (html_text, result, filename,)
 
 
 random.seed()

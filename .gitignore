@@ -1,5 +1,6 @@
 .vscode
 __pycache__
+captcha_img
 db
 favicon.ico
 logs
