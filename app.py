@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Backend of MIPTach (Flask + SQLite)"""
-from collections import deque
 from configparser import ConfigParser, ExtendedInterpolation
 from datetime import datetime
 from enum import Enum
@@ -16,6 +15,8 @@ from flask import (Flask, abort, g, redirect, render_template, request,
 # from flask.ext.babel import Babel
 from markupsafe import Markup
 
+from llist import dllist
+
 from captcha import generate_captcha
 from setup import setup_database
 from text_filter import markdown_to_html
@@ -27,6 +28,7 @@ SITE_NAME = config["Common"]["SiteName"]
 ANNOUNCE = Markup(config["Common"]["Announcement"]
                   ) if "Announcement" in config["Common"] else None
 CAPTCHA_DIR = config["Common"]["CaptchaFolder"]
+MAX_CAPTCHA_QUEUE_SIZE = config.getint("Common", "MaxCaptchaQueueSize")
 
 if not os.path.exists(config["Common"]["DatabaseFile"]):
     setup_database(config["Common"]["DatabaseFile"])
@@ -50,9 +52,8 @@ app.jinja_env.lstrip_blocks = True
 DB_LOCK = threading.Lock()
 
 CAPTCHA_LOCK = threading.Lock()
-captcha_queue = deque()  # pylint: disable=invalid-name
-captcha_values = dict()  # pylint: disable=invalid-name
-MAX_CAPTCHA_QUEUE_SIZE = config.getint("Common", "MaxCaptchaQueueSize")
+captcha_queue = dllist()  # pylint: disable=invalid-name
+captcha_data = dict()  # pylint: disable=invalid-name
 CaptchaResult = Enum(  # pylint: disable=invalid-name
     "CAPTCHA_RESULT", "NOT_FOUND WRONG CORRECT")
 
@@ -127,15 +128,15 @@ def get_captcha():
     with CAPTCHA_LOCK:
         captcha = generate_captcha(
             webp=config.getboolean("Common", "EnableWebp"),
-            uuid_set=captcha_values,
+            uuid_set=captcha_data,
             img_dir=CAPTCHA_DIR)
         captcha_uuid = captcha[2]
 
         if len(captcha_queue) == MAX_CAPTCHA_QUEUE_SIZE:
             deleted_uuid = captcha_queue.popleft()
-            del captcha_values[deleted_uuid]
-        captcha_queue.append((captcha_uuid, captcha[0],))
-        captcha_values[captcha_uuid] = captcha[1]
+            del captcha_data[deleted_uuid]
+        captcha_queue.append(captcha_uuid)
+        captcha_data[captcha_uuid] = captcha[:2] + (captcha_queue.last,)
 
         return (captcha_uuid, Markup(captcha[0]),)
 
@@ -143,11 +144,11 @@ def get_captcha():
 def verify_captcha(captcha_uuid, value):
     """Check if answer to CAPTCHA is correct."""
     with CAPTCHA_LOCK:
-        if captcha_uuid not in captcha_values:
+        if captcha_uuid not in captcha_data:
             return CaptchaResult.NOT_FOUND
-        answer = captcha_values[captcha_uuid]
-        del captcha_values[captcha_uuid]
-        if answer != value:
+        cur_data = captcha_data.pop(captcha_uuid)
+        captcha_queue.remove(cur_data[2])
+        if cur_data[1] != value:
             return CaptchaResult.WRONG
         return CaptchaResult.CORRECT
 
