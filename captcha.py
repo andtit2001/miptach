@@ -18,6 +18,7 @@ matplotlib.rcParams.update(
 matplotlib.rcParams["mathtext.fontset"] = "cm"
 
 DEFAULT_DPI = 96
+SPOT_RELATIVE_SIZE = 0.025
 
 
 def is_prime(num):
@@ -101,16 +102,32 @@ class ArithmeticTree:
         return " {} ".format(self.value.replace('*', "\\cdot")).join(str_list)
 
 
-def transform_image(svg_elem):
-    """Apply transformation to the given SVG element."""
+def transform_image(svg_text):
+    """Apply transformation to the given SVG image."""
+    soup = BeautifulSoup(svg_text, "html5lib")
+    svg_elem = soup.find("svg")
 
     figure_elem = svg_elem.find(id="figure_1")
-    skews = (random.randint(-20, 20), random.randint(-20, 20),)
-
-    figure_elem["transform"] = "skewX({})skewY({})".format(*skews)
     # Strip "pt" from the end
     img_width = float(svg_elem["width"][:-2])
     img_height = float(svg_elem["height"][:-2])
+
+    spot_absolute_size = SPOT_RELATIVE_SIZE * img_width
+    # Add some random colored circle spots
+    for _ in range(5):
+        circle = soup.new_tag(
+            "circle",
+            cx=str(random.uniform(
+                spot_absolute_size, img_width - spot_absolute_size)),
+            cy=str(random.uniform(
+                spot_absolute_size, img_height - spot_absolute_size)),
+            r=str(spot_absolute_size),
+            fill="#{0:06X}".format(random.randrange(2 ** 24)))
+        figure_elem.append(circle)
+
+    # Skew that!
+    skews = (random.randint(-20, 20), random.randint(-20, 20),)
+    figure_elem["transform"] = "skewX({})skewY({})".format(*skews)
 
     basis = [
         [1, 0],
@@ -142,6 +159,8 @@ def transform_image(svg_elem):
     svg_elem["height"] = str(viewbox[3]) + "pt"
     svg_elem["viewBox"] = ' '.join(map(str, viewbox))
 
+    return (str(svg_elem), svg_elem["width"], svg_elem["height"],)
+
 
 def generate_captcha(webp=False, uuid_set=None, img_dir="."):
     """Generate arithmetic CAPTCHA."""
@@ -154,17 +173,14 @@ def generate_captcha(webp=False, uuid_set=None, img_dir="."):
     fig.text(.5, .5, '$' + str(tree) + '$')
     stream = io.StringIO()
     fig.savefig(stream, transparent=True, bbox_inches="tight", pad_inches=0)
-
-    soup = BeautifulSoup(stream.getvalue(), "html5lib")
-    svg_elem = soup.find("svg")
-    transform_image(svg_elem)
+    svg_text, img_width, img_height = transform_image(stream.getvalue())
 
     filename = uuid4().hex
     if uuid_set:
         while filename in uuid_set:
             filename = uuid4().hex
     # Picture is upscaled to prevent blur
-    svg2png(bytestring=str(svg_elem),
+    svg2png(bytestring=svg_text,
             write_to=img_dir + '/' + filename + ".png",
             dpi=DEFAULT_DPI * 2)
     if webp:
@@ -180,7 +196,7 @@ def generate_captcha(webp=False, uuid_set=None, img_dir="."):
                     </picture>
                 """.format("""<source srcset="/captcha/{}.webp">
                         """.format(filename) if webp else "",
-                           filename, svg_elem["width"])
+                           filename, img_width)
 
     return (html_text, result, filename,)
 
