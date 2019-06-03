@@ -233,7 +233,10 @@ AND thread_id = :thread_id;""", {"board_name": board_name,
                                  "thread_id": thread_id}).fetchone()
     if thread_info is None:
         abort(404)
-    if not from_archive and thread_info[1]:
+    if from_archive:
+        if not thread_info[1]:
+            abort(404)
+    elif thread_info[1]:
         return redirect(url_for("archived_thread_handler",
                                 board_name=board_name,
                                 thread_id=thread_id), 301)
