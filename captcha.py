@@ -123,6 +123,7 @@ def transform_image(svg_text):
                 spot_absolute_size, img_height - spot_absolute_size)),
             r=str(spot_absolute_size),
             fill="#{0:06X}".format(random.randrange(2 ** 24)))
+        circle["fill-opacity"] = str(random.uniform(0.5, 1))
         figure_elem.append(circle)
 
     # Skew that!
