@@ -3,7 +3,7 @@ bleach
 bleach-whitelist
 CairoSVG
 Flask
-# flask-babel
+# Flask-Babel
 html5lib
 Markdown
 matplotlib
