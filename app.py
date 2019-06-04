@@ -159,7 +159,8 @@ def get_captcha_image(filename):
     full_name = CAPTCHA_DIR + '/' + filename
     if not os.path.exists(full_name):
         abort(404)
-    return send_file(full_name)
+    return send_file(full_name,
+                     mimetype="image/" + os.path.splitext(filename)[1][1:])
 
 
 def get_board(board_name):

@@ -195,7 +195,8 @@ def generate_captcha(webp=False, uuid_set=None, img_dir="."):
                     <picture>
                         {}<img src="/captcha/{}.png" style="vertical-align: middle; width: {};">
                     </picture>
-                """.format("""<source srcset="/captcha/{}.webp">
+                """.format("""\
+<source srcset="/captcha/{}.webp" type="image/webp">
                         """.format(filename) if webp else "",
                            filename, img_width)
 
