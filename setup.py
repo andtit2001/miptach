@@ -10,6 +10,7 @@ import sys
 
 def setup_database(db_path):
     """Set up database."""
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 

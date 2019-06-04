@@ -464,6 +464,8 @@ WHERE board_name = :board_name;""", {"board_name": board_name,
                             thread_id=thread_id), 303)
 
 
+if not os.path.exists("logs"):
+    os.mkdir("logs")
 HANDLER = TimedRotatingFileHandler("logs/log.log", encoding="utf-8", utc=True)
 HANDLER.setLevel(logging.INFO)
 logging.root.handlers = [HANDLER]
