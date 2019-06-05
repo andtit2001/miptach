@@ -42,5 +42,5 @@ def markdown_to_html(text):
         if span_tag.attrs.get("class", False)\
                 and "MathJax_Preview" not in span_tag.attrs["class"]:
             span_tag.extract()
-    return (soup.body.get_text(),
+    return (soup.body.get_text().strip(),
             ''.join(map(str, soup.body.contents)),)
