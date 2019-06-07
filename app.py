@@ -471,3 +471,6 @@ log_handler = TimedRotatingFileHandler(  # pylint: disable=invalid-name
     "logs/log.log", encoding="utf-8", utc=True)
 log_handler.setLevel(logging.INFO)
 logging.root.handlers = [log_handler]
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0")
