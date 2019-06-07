@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """Stub site which is used for informing about maintainance."""
 from configparser import ConfigParser
+import logging
 
 from flask import Flask, abort, redirect
 
@@ -23,6 +24,11 @@ def deny(path):
     """Deny access to any page."""
     return redirect("/", 307)
 
+
+log_handler = logging.FileHandler(  # pylint: disable=invalid-name
+    "stub.log", encoding="utf-8")
+log_handler.setLevel(logging.INFO)
+logging.root.handlers = [log_handler]
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
