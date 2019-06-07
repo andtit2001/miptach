@@ -467,6 +467,7 @@ WHERE board_name = :board_name;""", {"board_name": board_name,
 
 if not os.path.exists("logs"):
     os.mkdir("logs")
-HANDLER = TimedRotatingFileHandler("logs/log.log", encoding="utf-8", utc=True)
-HANDLER.setLevel(logging.INFO)
-logging.root.handlers = [HANDLER]
+log_handler = TimedRotatingFileHandler(  # pylint: disable=invalid-name
+    "logs/log.log", encoding="utf-8", utc=True)
+log_handler.setLevel(logging.INFO)
+logging.root.handlers = [log_handler]
