@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """This module provides function for generating arithmetic CAPTCHA."""
 import io
 import math
