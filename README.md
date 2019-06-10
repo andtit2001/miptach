@@ -16,3 +16,11 @@ Backend for MIPTach imageboard
 ## Configuration
 + `config.ini` &mdash; basic part of app configuration
 + `lang/` &mdash; localized lists of boards
+
+## Contacts
+If you want to discuss about development of this project "in real time", then go to [Discord server](https://discord.gg/dQBAMWZ).
+
+If you want to talk to *me*:
+1. VK: [@andtit2001](https://vk.com/andtit2001)
+2. Telegram: [@andtit2001](https://t.me/andtit2001)
+3. E-mail: <andtit2001@gmail.com>
